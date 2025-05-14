@@ -10,13 +10,8 @@ resource "azurerm_network_security_group" "db_nsg" {
   resource_group_name = azurerm_resource_group.main.name
 }
 
-resource "azurerm_network_security_group" "aks_nsg" {
-  name                = "aks_nsg"
-  location            = azurerm_resource_group.main.location
-  resource_group_name = azurerm_resource_group.main.name
-}
 
-///////////////Rule vm ////////////////////////////////
+///////////////Rules  ////////////////////////////////
 resource "azurerm_network_security_rule" "allow_80" {
   name                        = "allow_http"
   priority                    = 100
@@ -86,4 +81,16 @@ resource "azurerm_network_security_rule" "backend_allow_3000" {
   resource_group_name         = azurerm_resource_group.main.name
   network_security_group_name = azurerm_network_security_group.vm_nsg.name
 }
+
+resource "azurerm_subnet" "subnet" {
+  count               = length(var.subnets)
+  name                = var.subnets[count.index].name
+  resource_group_name = var.resource_group_name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes    = [var.subnets[count.index].address_prefix]
+}
+
+
+
+
 

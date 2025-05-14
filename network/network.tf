@@ -5,22 +5,15 @@ resource "azurerm_virtual_network" "main" {
   resource_group_name = azurerm_resource_group.main.name
 }
 
-resource "azurerm_subnet" "vm_subnet" {
-  name                 = var.vm_subnet_name
-  resource_group_name  = azurerm_resource_group.main.name
+resource "azurerm_subnet" "subnet" {
+  count               = length(var.subnets)
+  name                = var.subnets[count.index].name
+  resource_group_name = var.resource_group_name
   virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.1.0/24"]
+  address_prefixes    = [var.subnets[count.index].address_prefix]
 }
 
-resource "azurerm_subnet" "db_subnet" {
-  name                 = var.db_subnet_name
-  resource_group_name  = azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.2.0/24"]
-}
-resource "azurerm_subnet" "aks_subnet" {
-  name                 = var.aks_subnet_name
-  resource_group_name  = azurerm_resource_group.main.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.3.0/24"]
-}
+
+
+
+
