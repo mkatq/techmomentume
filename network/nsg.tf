@@ -16,8 +16,8 @@ resource "azurerm_network_security_group" "aks_nsg" {
   resource_group_name = azurerm_resource_group.main.name
 }
 
-
-resource "azurerm_network_security_rule" "allow_http" {
+///////////////Rule vm ////////////////////////////////
+resource "azurerm_network_security_rule" "allow_80" {
   name                        = "allow_http"
   priority                    = 100
   direction                   = "Inbound"
@@ -31,7 +31,7 @@ resource "azurerm_network_security_rule" "allow_http" {
   network_security_group_name = azurerm_network_security_group.vm_nsg.name
 }
 
-resource "azurerm_network_security_rule" "allow_ssh2" {
+resource "azurerm_network_security_rule" "allow_80" {
   name                        = "allow_ssh2"
   priority                    = 110
   direction                   = "Inbound"
@@ -66,7 +66,7 @@ resource "azurerm_network_security_rule" "allow_9090" {
   access                      = "Allow"
   protocol                    = "Tcp"
   source_port_range           = "*"
-  destination_port_range      = "5000"
+  destination_port_range      = "9090"
   source_address_prefix       = "*"
   destination_address_prefix  = "*"
   resource_group_name         = azurerm_resource_group.main.name
