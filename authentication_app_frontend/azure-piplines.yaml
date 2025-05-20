@@ -1,0 +1,95 @@
+trigger:
+  branches:
+    include:
+      - main
+
+  paths:
+    include:
+      - authentication_app_frontend/**
+
+stages:
+  # Stage 1: Testing
+  - stage: TestStage
+    displayName: "Testing Frontend"
+    jobs:
+      - job: TestFrontend
+        displayName: "Run Frontend Tests"
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: "18.x"
+            displayName: "Install Node.js"
+
+          - task: SonarQubePrepare@7
+            displayName: "Prepare SonarQube Analysis"
+            inputs:
+              SonarQube: 'frontend_sq'  # Azure service connection name
+              scannerMode: 'CLI'
+              configMode: 'manual'
+              cliProjectKey: 'frontend'
+              cliProjectName: 'frontend'
+              cliSources: '.'
+
+          - script: |
+              npm install
+              npm test
+            displayName: "Frontend Tests"
+            workingDirectory: authentication_app_frontend  
+
+          - task: SonarQubeAnalyze@7
+            displayName: 'Run SonarQube Analysis'
+          
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'test-results/test-results.xml'
+            condition: succeededOrFailed()
+            displayName: 'Publish Test Results'
+        
+          - task: SonarQubePublish@7
+            inputs:
+              pollingTimeoutSec: '300'
+            displayName: 'Publish SonarQube Results'
+
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathToPublish: './'
+              ArtifactName: 'drop'
+            displayName: 'Publish Build Artefacts'
+
+  # Stage 2: Build and Push Docker Images
+  - stage: BuildStage
+    displayName: "Build and Push Docker Images"
+    dependsOn: TestStage
+    jobs:
+      - job: BuildFrontendImage
+        displayName: "Build Frontend Docker Image"
+        steps:
+          - task: DockerInstaller@0
+            inputs:
+              dockerVersion: "20.10.24"
+
+          - task: Docker@2
+            displayName: "Login to DockerHub"
+            inputs:
+              command: login
+              containerRegistry: Dockerhub-Connection
+
+          - script: |
+              docker build -t "samahmoe/ui-auth-app:latest" .
+              docker push "samahmoe/ui-auth-app:latest"
+            displayName: "Build and Push Frontend"
+            workingDirectory: authentication_app_frontend 
+          - task: AzureCLI@2
+            displayName: "Get AKS Credentials and Restart Deployment"
+            inputs:
+              azureSubscription: 'AzureServiceConnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az aks get-credentials \
+                  --resource-group Devops1-week12-Techmomentum-RG \
+                  --name Devops1-week12-Techmomentum-aks-cluster \
+                  --overwrite-existing
+                
+                kubectl rollout restart deployment frontend-deploy -n techmomentum-project
